@@ -6,11 +6,14 @@ This project demonstrates a complete inference workflow in the context of a web 
 
 To run the application, execute the following command:
 
-```
-go run cmd/app/main.go
+```bash
+make build # Build the application
+docker compose up # Bring up the application and its dependencies
 ```
 
-Now you can access the application at http://localhost:8080.
+Now you can access the application at `http://localhost:8080`.
+
+The client will connect to a WebSocket at `http://localhost:8081/ws`. It will receive a response from the WebSocket server when the inference is complete.
 
 ## LICENSE
 

@@ -1,5 +1,5 @@
 package application
 
-type Inference interface {
+type UseCase interface {
 	Execute()
 }

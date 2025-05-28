@@ -1,0 +1,11 @@
+services:
+  server:
+    image: local/inference-async-workflow-example:server
+    ports:
+      - "8080:8080"
+  queue:
+    image: local/inference-async-workflow-example:queue
+    ports:
+      - "8081:8081"
+  redis:
+    image: redis
