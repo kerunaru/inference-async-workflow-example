@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="es" class="h-full bg-gray-50">
+    <head>
+        <meta content="text/html;charset=utf-8" http-equiv="Content-Type" />
+        <meta content="utf-8" http-equiv="encoding" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <script src="https://cdn.tailwindcss.com"></script>
+        <script>
+            document.addEventListener("DOMContentLoaded", function () {
+                const socket = new WebSocket(
+                    "ws://" + window.location.host + "/inference",
+                );
+                const inferButton = document.getElementById("infer-button");
+                const resultDiv = document.getElementById("inference-result");
+
+                socket.onmessage = function (event) {
+                    resultDiv.innerHTML = `<div class="text-green-600 font-medium">Result: ${event.data}</div>`;
+                    inferButton.disabled = false;
+                    inferButton.classList.remove(
+                        "opacity-50",
+                        "cursor-not-allowed",
+                    );
+                };
+
+                inferButton.addEventListener("click", function () {
+                    resultDiv.innerHTML = `<div class="text-blue-500 font-medium flex items-center"><svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Processing&hellip;</div>`;
+                    inferButton.disabled = true;
+                    inferButton.classList.add(
+                        "opacity-50",
+                        "cursor-not-allowed",
+                    );
+                    socket.send("Inference request");
+                });
+            });
+        </script>
+    </head>
+    <body
+        class="h-full flex items-center justify-center bg-gray-100"
+    >
+        <div class="max-w-md w-full p-8 bg-white rounded border border-gray-200">
+            <h1 class="text-2xl font-bold text-center text-gray-800 mb-6">
+                Inference async workflow
+            </h1>
+
+            <button
+                id="infer-button"
+                class="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded border border-blue-600 transition-colors focus:outline-none mb-4"
+            >
+                Inference
+            </button>
+
+            <div
+                id="inference-result"
+                class="h-12 flex items-center justify-center p-2 border border-gray-300 rounded bg-gray-50"
+            ></div>
+        </div>
+    </body>
+</html>
