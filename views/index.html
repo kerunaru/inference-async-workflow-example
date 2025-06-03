@@ -1,10 +1,15 @@
 <!doctype html>
-<html lang="es" class="h-full bg-gray-50">
+<html lang="es" class="h-full bg-gray-50 dark:bg-gray-900">
     <head>
         <meta content="text/html;charset=utf-8" http-equiv="Content-Type" />
         <meta content="utf-8" http-equiv="encoding" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <script src="https://cdn.tailwindcss.com"></script>
+        <script>
+            tailwind.config = {
+                darkMode: "media",
+            };
+        </script>
         <script>
             document.addEventListener("DOMContentLoaded", function () {
                 const socket = new WebSocket(
@@ -13,25 +18,75 @@
                 const inferButton = document.getElementById("infer-button");
                 const resultDiv = document.getElementById("inference-result");
                 const textInput = document.getElementById("text-input");
+                const progressText = document.getElementById("progress-text");
+
+                function updateProgressText(html) {
+                    progressText.style.opacity = "0";
+                    setTimeout(() => {
+                        progressText.innerHTML = html;
+                        progressText.style.opacity = "1";
+                    }, 150);
+                }
 
                 socket.onmessage = function (event) {
-                    resultDiv.innerHTML = `<div class="text-green-600 font-medium">Result: ${event.data}</div>`;
-                    inferButton.disabled = false;
-                    inferButton.classList.remove(
-                        "opacity-50",
-                        "cursor-not-allowed",
+                    updateProgressText(
+                        `<span class="text-green-600 font-medium">✓ Inference completed!</span>`,
                     );
+
+                    // Create image element to preload
+                    const img = new Image();
+                    img.onload = function () {
+                        resultDiv.innerHTML = `<div class="text-green-600 font-medium"><img src="${event.data}"/></div>`;
+                        resultDiv.classList.remove("hidden");
+                        resultDiv.style.opacity = '0';
+                        setTimeout(() => {
+                            resultDiv.style.opacity = '1';
+                            updateProgressText(`<span class="text-green-600 font-medium">✓ Image loaded successfully!</span>`);
+                            
+                            // Re-enable button only after image is fully loaded and displayed
+                            if (inferButton.disabled) {
+                                inferButton.disabled = false;
+                                inferButton.classList.remove(
+                                    "opacity-50",
+                                    "cursor-not-allowed",
+                                );
+                            }
+                        }, 50);
+                    };
+                    img.onerror = function () {
+                        updateProgressText(
+                            `<span class="text-red-600 font-medium">Error loading image</span>`,
+                        );
+                        if (inferButton.disabled) {
+                            inferButton.disabled = false;
+                            inferButton.classList.remove(
+                                "opacity-50",
+                                "cursor-not-allowed",
+                            );
+                        }
+                    };
+                    img.src = event.data;
                 };
 
                 inferButton.addEventListener("click", async function () {
                     const inputText = textInput.value.trim();
 
                     if (!inputText) {
-                        resultDiv.innerHTML = `<div class="text-red-600 font-medium">Please enter some text</div>`;
+                        updateProgressText(
+                            `<span class="text-red-600 font-medium">Please enter some text</span>`,
+                        );
                         return;
                     }
 
-                    resultDiv.innerHTML = `<div class="text-blue-500 font-medium flex items-center"><svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Processing&hellip;</div>`;
+                    // Hide previous image with fade-out if it exists
+                    if (!resultDiv.classList.contains("hidden")) {
+                        resultDiv.style.opacity = '0';
+                        setTimeout(() => {
+                            resultDiv.classList.add("hidden");
+                        }, 500);
+                    }
+
+                    updateProgressText(`<span class="text-blue-500 font-medium flex items-center"><svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span>Submitting request...</span></span>`);
                     inferButton.disabled = true;
                     inferButton.classList.add(
                         "opacity-50",
@@ -44,53 +99,73 @@
                             headers: {
                                 "Content-Type": "application/json",
                             },
-                            body: JSON.stringify({ text: inputText }),
+                            body: JSON.stringify({ prompt: inputText }),
                         });
 
                         if (response.ok) {
                             const result = await response.text();
-                            resultDiv.innerHTML = `<div class="text-green-600 font-medium">Result: ${result}</div>`;
+                            updateProgressText(`<span class="text-blue-600 font-medium flex items-center"><svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span>Request submitted! Waiting for inference...</span></span>`);
+                            // Don't re-enable button here - wait for WebSocket response
                         } else {
-                            resultDiv.innerHTML = `<div class="text-red-600 font-medium">Error: ${response.status}</div>`;
+                            updateProgressText(
+                                `<span class="text-red-600 font-medium">Error: ${response.status}</span>`,
+                            );
+                            // Re-enable button on error
+                            inferButton.disabled = false;
+                            inferButton.classList.remove(
+                                "opacity-50",
+                                "cursor-not-allowed",
+                            );
                         }
                     } catch (error) {
-                        resultDiv.innerHTML = `<div class="text-red-600 font-medium">Error: ${error.message}</div>`;
+                        updateProgressText(
+                            `<span class="text-red-600 font-medium">Error: ${error.message}</span>`,
+                        );
+                        // Re-enable button on error
+                        inferButton.disabled = false;
+                        inferButton.classList.remove(
+                            "opacity-50",
+                            "cursor-not-allowed",
+                        );
                     }
-
-                    inferButton.disabled = false;
-                    inferButton.classList.remove(
-                        "opacity-50",
-                        "cursor-not-allowed",
-                    );
                 });
             });
         </script>
     </head>
-    <body class="h-full flex items-center justify-center bg-gray-100">
+    <body
+        class="h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800"
+    >
         <div
-            class="max-w-md w-full p-8 bg-white rounded border border-gray-200"
+            class="max-w-md w-full p-8 bg-white dark:bg-gray-700 rounded border border-gray-200 dark:border-gray-600"
         >
-            <h1 class="text-2xl font-bold text-center text-gray-800 mb-6">
+            <h1
+                class="text-2xl font-bold text-center text-gray-800 dark:text-gray-100 mb-6"
+            >
                 Inference async workflow
             </h1>
 
             <textarea
                 id="text-input"
                 placeholder="Enter text for inference..."
-                class="w-full p-3 border border-gray-300 rounded resize-none focus:outline-none focus:border-blue-500 mb-4"
+                class="w-full p-3 border border-gray-300 dark:border-gray-500 rounded resize-none focus:outline-none focus:border-blue-500 dark:focus:border-blue-400 mb-4 bg-white dark:bg-gray-600 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
                 rows="4"
             ></textarea>
 
             <button
                 id="infer-button"
-                class="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded border border-blue-600 transition-colors focus:outline-none mb-4"
+                class="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white font-medium rounded border border-blue-600 dark:border-blue-500 transition-colors focus:outline-none mb-2"
             >
                 Infer!
             </button>
 
             <div
+                id="progress-text"
+                class="min-h-6 flex items-center justify-center text-sm mb-4 transition-opacity duration-300 text-gray-700 dark:text-gray-300"
+            ></div>
+
+            <div
                 id="inference-result"
-                class="h-12 flex items-center justify-center p-2 border border-gray-300 rounded bg-gray-50"
+                class="min-h-12 flex items-center justify-center p-2 border border-gray-300 dark:border-gray-500 rounded bg-gray-50 dark:bg-gray-600 hidden transition-opacity duration-500"
             ></div>
         </div>
     </body>

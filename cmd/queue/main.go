@@ -2,13 +2,27 @@ package main
 
 import (
 	"inference-workflow-example/internal/inference/application"
-	infrastructure "inference-workflow-example/internal/shared/infrastructure/server"
+	redis "inference-workflow-example/internal/shared/infrastructure/persistence"
+	server "inference-workflow-example/internal/shared/infrastructure/server"
+	"log"
 	"net/http"
 
 	"github.com/gorilla/websocket"
+	"github.com/joho/godotenv"
 )
 
 func inference(w http.ResponseWriter, r *http.Request) {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+
+	redisClient := redis.NewRedisClient(
+		"redis:6379",
+		"",
+		0,
+	)
+
 	upgrader := websocket.Upgrader{}
 
 	// Don't do this on production, please use a proper origin check
@@ -17,24 +31,13 @@ func inference(w http.ResponseWriter, r *http.Request) {
 	ws, _ := upgrader.Upgrade(w, r, nil)
 	defer ws.Close()
 
-	useCase := application.NewInferenceUseCase()
+	usecase := application.NewProcessInferenceUsecase(redisClient, ws)
 
-	for {
-		mt, message, err := ws.ReadMessage()
-		if err != nil {
-			return
-		}
-
-		if message != nil {
-			result := useCase.Execute(message)
-
-			_ = ws.WriteMessage(mt, result)
-		}
-	}
+	usecase.Execute()
 }
 
 func main() {
-	httpServer := infrastructure.NewHttpServer("8081")
+	httpServer := server.NewHttpServer("8081")
 
 	httpServer.RegisterRoute("/ws", inference)
 

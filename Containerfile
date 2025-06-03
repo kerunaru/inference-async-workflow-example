@@ -31,6 +31,9 @@ COPY --from=builder /app/server .
 # Copy views directory for HTML templates
 COPY --from=builder /app/views ./views
 
+# Copy .env file from builder stage
+COPY --from=builder /app/.env .
+
 # Expose port 8080
 EXPOSE 8080
 
@@ -46,6 +49,9 @@ WORKDIR /root/
 
 # Copy the binary from builder stage
 COPY --from=builder /app/queue .
+
+# Copy .env file from builder stage
+COPY --from=builder /app/.env .
 
 # Expose port 8081
 EXPOSE 8081
