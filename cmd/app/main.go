@@ -4,11 +4,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"inference-workflow-example/internal/inference/application"
+	"inference-workflow-example/internal/inference/infrastructure"
 	persistence "inference-workflow-example/internal/shared/infrastructure/persistence"
 	server "inference-workflow-example/internal/shared/infrastructure/server"
 	"io"
+	"log"
 	"net/http"
 	"os"
+
+	"github.com/joho/godotenv"
 )
 
 func renderGUI(w http.ResponseWriter, r *http.Request) {
@@ -25,12 +29,15 @@ func renderGUI(w http.ResponseWriter, r *http.Request) {
 }
 
 func saveInferenceJob(w http.ResponseWriter, r *http.Request) {
-	redis := persistence.NewRedisClient(
-		"redis:6379",
+	redisClient := persistence.NewRedisClient(
+		fmt.Sprintf("%s:%s", os.Getenv("REDIS_HOST"), os.Getenv("REDIS_PORT")),
 		"",
 		0,
 	)
-	usecase := application.NewInferenceUseCase(redis)
+
+	redisRepository := infrastructure.NewRedisInferenceJobRepository(redisClient)
+
+	usecase := application.NewInferenceUseCase(redisRepository)
 
 	requestBody, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -56,7 +63,12 @@ func saveInferenceJob(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	httpServer := server.NewHttpServer("8080")
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+
+	httpServer := server.NewHttpServer(os.Getenv("SERVER_PORT"))
 
 	httpServer.RegisterRoute("GET /", renderGUI)
 	httpServer.RegisterRoute("POST /inference", saveInferenceJob)

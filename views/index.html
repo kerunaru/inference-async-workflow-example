@@ -38,11 +38,10 @@
                     img.onload = function () {
                         resultDiv.innerHTML = `<div class="text-green-600 font-medium"><img src="${event.data}"/></div>`;
                         resultDiv.classList.remove("hidden");
-                        resultDiv.style.opacity = '0';
+                        resultDiv.style.opacity = "0";
                         setTimeout(() => {
-                            resultDiv.style.opacity = '1';
-                            updateProgressText(`<span class="text-green-600 font-medium">✓ Image loaded successfully!</span>`);
-                            
+                            resultDiv.style.opacity = "1";
+
                             // Re-enable button only after image is fully loaded and displayed
                             if (inferButton.disabled) {
                                 inferButton.disabled = false;
@@ -80,13 +79,15 @@
 
                     // Hide previous image with fade-out if it exists
                     if (!resultDiv.classList.contains("hidden")) {
-                        resultDiv.style.opacity = '0';
+                        resultDiv.style.opacity = "0";
                         setTimeout(() => {
                             resultDiv.classList.add("hidden");
                         }, 500);
                     }
 
-                    updateProgressText(`<span class="text-blue-500 font-medium flex items-center"><svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span>Submitting request...</span></span>`);
+                    updateProgressText(
+                        `<span class="text-blue-500 font-medium flex items-center"><svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span>Submitting request...</span></span>`,
+                    );
                     inferButton.disabled = true;
                     inferButton.classList.add(
                         "opacity-50",
@@ -104,7 +105,9 @@
 
                         if (response.ok) {
                             const result = await response.text();
-                            updateProgressText(`<span class="text-blue-600 font-medium flex items-center"><svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span>Request submitted! Waiting for inference...</span></span>`);
+                            updateProgressText(
+                                `<span class="text-blue-600 font-medium flex items-center"><svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span>Request submitted! Waiting for inference...</span></span>`,
+                            );
                             // Don't re-enable button here - wait for WebSocket response
                         } else {
                             updateProgressText(

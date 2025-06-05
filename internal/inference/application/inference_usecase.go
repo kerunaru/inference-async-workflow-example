@@ -2,7 +2,6 @@ package application
 
 import (
 	"inference-workflow-example/internal/inference/domain"
-	persistence "inference-workflow-example/internal/shared/infrastructure/persistence"
 	"log"
 	"os"
 
@@ -11,12 +10,12 @@ import (
 )
 
 type InferenceUseCase struct {
-	redisClient *persistence.RedisClient
+	inferenceJobRepository domain.InferenceJobRepository
 }
 
-func NewInferenceUseCase(redisClient *persistence.RedisClient) *InferenceUseCase {
+func NewInferenceUseCase(inferenceJobRepository domain.InferenceJobRepository) *InferenceUseCase {
 	return &InferenceUseCase{
-		redisClient: redisClient,
+		inferenceJobRepository: inferenceJobRepository,
 	}
 }
 
@@ -24,6 +23,7 @@ func (i *InferenceUseCase) Execute(prompt string) (uuid.UUID, error) {
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Error loading .env file")
+		panic(err)
 	}
 
 	inferenceJob, err := domain.NewInferenceJob(prompt, os.Getenv("DC_ENDPOINT"))
@@ -32,7 +32,7 @@ func (i *InferenceUseCase) Execute(prompt string) (uuid.UUID, error) {
 		return uuid.Nil, err
 	}
 
-	i.redisClient.Set(inferenceJob.String())
+	i.inferenceJobRepository.Save(inferenceJob)
 
-	return inferenceJob.Id, nil
+	return inferenceJob.Id(), nil
 }

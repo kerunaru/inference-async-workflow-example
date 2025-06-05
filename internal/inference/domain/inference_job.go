@@ -2,6 +2,7 @@ package domain
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/url"
 
@@ -9,9 +10,9 @@ import (
 )
 
 type InferenceJob struct {
-	Id     uuid.UUID `json:"id"`
-	Prompt string    `json:"prompt"`
-	Url    *url.URL  `json:"url"`
+	id     uuid.UUID
+	prompt string
+	url    *url.URL
 }
 
 func NewInferenceJob(prompt string, target string) (*InferenceJob, error) {
@@ -25,16 +26,66 @@ func NewInferenceJob(prompt string, target string) (*InferenceJob, error) {
 	}
 
 	return &InferenceJob{
-		Id:     uuid.New(),
-		Prompt: prompt,
-		Url:    parsedTarget,
+		id:     uuid.New(),
+		prompt: prompt,
+		url:    parsedTarget,
 	}, nil
 }
 
-func (i *InferenceJob) String() string {
-	data, err := json.Marshal(i)
+func (i *InferenceJob) Id() uuid.UUID {
+	return i.id
+}
+
+func (i *InferenceJob) Prompt() string {
+	return i.prompt
+}
+
+func (i *InferenceJob) Url() *url.URL {
+	return i.url
+}
+
+func (i *InferenceJob) ToJson() (string, error) {
+	result, err := json.Marshal(struct {
+		Id     string `json:"id"`
+		Prompt string `json:"prompt"`
+		Url    string `json:"url"`
+	}{
+		Id:     i.Id().String(),
+		Prompt: i.Prompt(),
+		Url:    i.Url().String(),
+	})
+
 	if err != nil {
-		return fmt.Sprintf("InferenceJob{Id: %s, error marshaling: %v}", i.Id, err)
+		return "", errors.New("failed to marshal inference job")
 	}
-	return string(data)
+
+	return string(result), nil
+}
+
+func InferenceJobFromJson(jsonString string) (*InferenceJob, error) {
+	var data struct {
+		Id     string `json:"id"`
+		Prompt string `json:"prompt"`
+		Url    string `json:"url"`
+	}
+
+	if err := json.Unmarshal([]byte(jsonString), &data); err != nil {
+		return nil, err
+	}
+
+	id, err := uuid.Parse(data.Id)
+	if err != nil {
+		return nil, err
+	}
+
+	parsedUrl, err := url.Parse(data.Url)
+	if err != nil {
+		return nil, err
+	}
+
+	return &InferenceJob{
+		id:     id,
+		prompt: data.Prompt,
+		url:    parsedUrl,
+	}, nil
 }
